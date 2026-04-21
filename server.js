@@ -109,7 +109,7 @@ COMPOSITION: Full body Mojo character clearly visible and centered. Square 1:1 f
 `.trim();
 
   const res = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${GEMINI}`,
     {
       contents: [{
         parts: [
