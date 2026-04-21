@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOJO — PFP Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Cormorant:ital,wght@1,700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+/* ── Dark mode (default) ── */
+:root {
+  --bg:           #0e0e0e;
+  --bg-card:      #161616;
+  --border:       rgba(255,255,255,0.1);
+  --border-hover: rgba(255,255,255,0.22);
+  --text:         #f5f0eb;
+  --text-dim:     rgba(245,240,235,0.45);
+  --orange:       #F97316;
+  --orange-dim:   rgba(249,115,22,0.12);
+  --result-bg:    #111111;
+  --select-opt:   #1c1c1c;
+  --overlay-bg:   rgba(14,14,14,0.88);
+  --grain-opacity: 0.07;
+  --gradient:     radial-gradient(ellipse at 50% 0%, rgba(30,30,30,0.8) 0%, transparent 70%);
+}
+
+/* ── Light mode ── */
+html.light {
+  --bg:           #e8e2d9;
+  --bg-card:      #f8f4ee;
+  --border:       rgba(0,0,0,0.22);
+  --border-hover: rgba(0,0,0,0.45);
+  --text:         #0a0600;
+  --text-dim:     #3d2f1a;
+  --orange:       #a83d00;
+  --orange-dim:   rgba(168,61,0,0.1);
+  --result-bg:    #ddd8cf;
+  --select-opt:   #f8f4ee;
+  --overlay-bg:   rgba(232,226,217,0.93);
+  --grain-opacity: 0.04;
+  --gradient:     radial-gradient(ellipse at 50% 0%, rgba(190,180,165,0.5) 0%, transparent 70%);
+}
+
+/* ── Transitions for smooth swap ── */
+body, nav, .panel, .upload-zone, .result-frame, .btn-generate, .btn-download {
+  transition: background-color .3s, border-color .3s, color .3s;
+}
+
+/* ── Crumpled paper texture ── */
+body {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  background-color: var(--bg);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23grain)' opacity='0.06'/%3E%3C/svg%3E"),
+    var(--gradient);
+  min-height: 100vh;
+  color: var(--text);
+}
+
+/* ── Nav ── */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 48px;
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.1rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-decoration: none;
+}
+.nav-links {
+  display: flex;
+  gap: 36px;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--text); }
+@media (max-width: 600px) {
+  nav { padding: 20px 24px; }
+  .nav-links { display: none; }
+}
+
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 64px 20px 48px;
+  position: relative;
+}
+.hero-eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+.hero-title {
+  font-family: 'Cormorant', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(3.5rem, 10vw, 7rem);
+  line-height: 0.92;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.hero-sub {
+  margin-top: 20px;
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  font-style: italic;
+}
+.hero-rule {
+  width: 1px;
+  height: 48px;
+  background: linear-gradient(to bottom, var(--border), transparent);
+  margin: 36px auto 0;
+}
+
+/* ── Main layout ── */
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+/* ── Panel ── */
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 28px;
+  position: relative;
+}
+.panel-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Upload ── */
+.upload-zone {
+  border: 1px dashed var(--border-hover);
+  border-radius: 3px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  position: relative;
+  background: transparent;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: rgba(249,115,22,0.4);
+  background: var(--orange-dim);
+}
+.upload-zone input {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-zone-icon {
+  font-size: 2rem;
+  opacity: 0.3;
+  display: block;
+  margin-bottom: 10px;
+}
+.upload-zone-text {
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.upload-zone-hint {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.upload-preview {
+  display: none;
+  margin-top: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.upload-preview img {
+  width: 100%;
+  display: block;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+/* ── Trait rows ── */
+.traits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.trait-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  transition: background .15s;
+}
+.trait-row:last-child { border-bottom: none; }
+.trait-row:hover { background: rgba(255,255,255,0.02); }
+
+.trait-name {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  width: 100px;
+  flex-shrink: 0;
+  padding: 14px 0 14px 4px;
+}
+.trait-select {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.92rem;
+  font-weight: 400;
+  color: var(--text);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M.5.5l4.5 5L9.5.5' stroke='rgba(245,240,235,0.3)' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  padding: 14px 24px 14px 8px;
+  outline: none;
+  transition: color .2s;
+}
+.trait-select:focus { color: var(--white); }
+.trait-select option {
+  background: var(--select-opt);
+  color: var(--text);
+}
+
+/* ── Generate button ── */
+.btn-generate {
+  width: 100%;
+  margin-top: 24px;
+  padding: 15px 20px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border-hover);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, color .2s;
+}
+.btn-generate:hover:not(:disabled) {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: var(--orange-dim);
+}
+.btn-generate:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.btn-generate.loading {
+  border-color: rgba(249,115,22,0.4);
+  color: var(--orange);
+}
+
+/* ── Spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-ring {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border: 1px solid rgba(249,115,22,0.3);
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+
+/* ── Error ── */
+.error-box {
+  display: none;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 2px;
+  background: rgba(239,68,68,0.06);
+  font-size: 0.78rem;
+  color: #FCA5A5;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+.error-box.visible { display: block; }
+
+/* ── Result panel ── */
+.result-frame {
+  aspect-ratio: 1;
+  background: var(--result-bg);
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.result-placeholder {
+  text-align: center;
+  padding: 40px 20px;
+}
+.result-placeholder-icon {
+  font-size: 3.5rem;
+  opacity: 0.08;
+  display: block;
+  margin-bottom: 14px;
+}
+.result-placeholder-text {
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+.result-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+/* Loading overlay */
+.result-overlay {
+  position: absolute; inset: 0;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(6px);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.result-overlay.visible { display: flex; }
+.overlay-ring {
+  width: 44px; height: 44px;
+  border: 1px solid rgba(249,115,22,0.2);
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+}
+.overlay-text {
+  font-size: 0.68rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* ── Trait badges ── */
+.badges {
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.badge {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* ── Download ── */
+.btn-download {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px 20px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--orange);
+  background: var(--orange-dim);
+  border: 1px solid rgba(249,115,22,0.3);
+  border-radius: 2px;
+  text-decoration: none;
+  transition: border-color .2s, background .2s;
+}
+.btn-download:hover {
+  border-color: var(--orange);
+  background: rgba(249,115,22,0.18);
+}
+
+/* ── Save tip ── */
+.save-tip {
+  margin-top: 10px;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-align: center;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* ── Footer ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+@media (max-width: 600px) {
+  footer { flex-direction: column; gap: 8px; padding: 20px 24px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a class="nav-logo" href="https://solmojo.com">Mojo</a>
+  <div style="display:flex;align-items:center;gap:32px;">
+    <ul class="nav-links">
+      <li><a href="https://solmojo.com">Home</a></li>
+    </ul>
+    <button id="themeToggle" aria-label="Toggle theme" style="
+      background:none;border:1px solid var(--border);border-radius:2px;
+      color:var(--text-dim);cursor:pointer;font-family:'Cormorant Garamond',serif;
+      font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;
+      padding:6px 12px;transition:border-color .2s,color .2s;
+    ">◑ Light</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-eyebrow">PFP Generator</div>
+  <h1 class="hero-title">MOJO</h1>
+  <p class="hero-sub">Upload your photo. Become Mojo.</p>
+  <div class="hero-rule"></div>
+</div>
+
+<!-- Main -->
+<main class="container">
+
+  <!-- Left: Photo + Traits -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <!-- Photo upload -->
+    <div class="panel">
+      <div class="panel-label">01 — Your Photo</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*">
+        <span class="upload-zone-icon">◻</span>
+        <div class="upload-zone-text">Drop or click to upload</div>
+        <div class="upload-zone-hint">JPG, PNG, WEBP — max 20MB</div>
+      </div>
+      <div class="upload-preview" id="uploadPreview">
+        <img id="previewImg" src="" alt="Preview">
+      </div>
+    </div>
+
+    <!-- Traits -->
+    <div class="panel">
+      <div class="panel-label">02 — Customize</div>
+      <div class="traits-list">
+
+        <div class="trait-row">
+          <span class="trait-name">Background</span>
+          <select class="trait-select" id="traitBackground">
+            <option value="Crumpled Paper">Crumpled Paper</option>
+            <option value="Banana Forest">Banana Forest</option>
+            <option value="Jungle Canopy">Jungle Canopy</option>
+            <option value="Outer Space">Outer Space</option>
+            <option value="City at Night">City at Night</option>
+            <option value="Beach Sunset">Beach Sunset</option>
+            <option value="Cherry Blossom">Cherry Blossom</option>
+            <option value="Crypto Bull Run">Crypto Bull Run</option>
+            <option value="Treehouse">Treehouse</option>
+            <option value="Underwater">Underwater</option>
+          </select>
+        </div>
+
+        <div class="trait-row">
+          <span class="trait-name">Held Item</span>
+          <select class="trait-select" id="traitHeldItem">
+            <option value="Banana">Banana</option>
+            <option value="Crayon">Crayon</option>
+            <option value="Bitcoin">Bitcoin</option>
+            <option value="Phone">Phone</option>
+            <option value="Coffee Cup">Coffee Cup</option>
+            <option value="Microphone">Microphone</option>
+            <option value="Trophy">Trophy</option>
+            <option value="Magic Wand">Magic Wand</option>
+          </select>
+        </div>
+
+        <div class="trait-row">
+          <span class="trait-name">Hat</span>
+          <select class="trait-select" id="traitHat">
+            <option value="None">None</option>
+            <option value="Baseball Cap">Baseball Cap</option>
+            <option value="Gold Crown">Gold Crown</option>
+            <option value="Cowboy Hat">Cowboy Hat</option>
+            <option value="Party Hat">Party Hat</option>
+            <option value="Astronaut Helmet">Astronaut Helmet</option>
+            <option value="Halo">Halo</option>
+            <option value="Beanie">Beanie</option>
+          </select>
+        </div>
+
+        <div class="trait-row">
+          <span class="trait-name">Accessories</span>
+          <select class="trait-select" id="traitAccessories">
+            <option value="None">None</option>
+            <option value="Gold Chain">Gold Chain</option>
+            <option value="Sunglasses">Sunglasses</option>
+            <option value="Earring">Earring</option>
+            <option value="Bandana">Bandana</option>
+            <option value="Bow Tie">Bow Tie</option>
+          </select>
+        </div>
+
+        <div class="trait-row">
+          <span class="trait-name">Mood</span>
+          <select class="trait-select" id="traitMood">
+            <option value="Happy">Happy</option>
+            <option value="Crying">Crying</option>
+            <option value="Angry">Angry</option>
+            <option value="Cool">Cool</option>
+            <option value="Shocked">Shocked</option>
+            <option value="Sleepy">Sleepy</option>
+          </select>
+        </div>
+
+      </div>
+
+      <button class="btn-generate" id="generateBtn" disabled>
+        Generate Mojo
+      </button>
+      <div class="error-box" id="errorBox"></div>
+    </div>
+
+  </div>
+
+  <!-- Right: Result -->
+  <div class="panel" style="position:sticky;top:20px;">
+    <div class="panel-label">03 — Your Mojo PFP</div>
+
+    <div class="result-frame" id="resultFrame">
+      <div class="result-placeholder" id="resultPlaceholder">
+        <span class="result-placeholder-icon">◻</span>
+        <div class="result-placeholder-text">
+          Upload a photo<br>select your traits<br>generate your Mojo
+        </div>
+      </div>
+
+      <img class="result-img" id="resultImg" src="" alt="Mojo PFP">
+
+      <div class="result-overlay" id="resultOverlay">
+        <div class="overlay-ring"></div>
+        <div class="overlay-text">Mojifying<br>~15 seconds</div>
+      </div>
+    </div>
+
+    <div class="badges" id="traitBadges"></div>
+
+    <a class="btn-download" id="downloadBtn" href="#" download="mojo-pfp.png">
+      Download — 1000 × 1000 PNG
+    </a>
+
+    <p class="save-tip">Long-press on mobile to save</p>
+  </div>
+
+</main>
+
+<!-- Footer -->
+<footer></footer>
+
+<script>
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3006' : '';
+
+// ── Theme toggle ──────────────────────────────────────────────────────────
+const themeToggle = document.getElementById('themeToggle');
+const savedTheme  = localStorage.getItem('mojo-theme') || 'dark';
+if (savedTheme === 'light') applyLight();
+
+themeToggle.addEventListener('click', () => {
+  if (document.documentElement.classList.contains('light')) {
+    document.documentElement.classList.remove('light');
+    themeToggle.textContent = '◑ Light';
+    localStorage.setItem('mojo-theme', 'dark');
+  } else {
+    applyLight();
+    localStorage.setItem('mojo-theme', 'light');
+  }
+});
+
+function applyLight() {
+  document.documentElement.classList.add('light');
+  themeToggle.textContent = '◑ Dark';
+}
+
+const fileInput     = document.getElementById('fileInput');
+const uploadZone    = document.getElementById('uploadZone');
+const uploadPreview = document.getElementById('uploadPreview');
+const previewImg    = document.getElementById('previewImg');
+const generateBtn   = document.getElementById('generateBtn');
+const errorBox      = document.getElementById('errorBox');
+const resultPlaceholder = document.getElementById('resultPlaceholder');
+const resultImg     = document.getElementById('resultImg');
+const resultOverlay = document.getElementById('resultOverlay');
+const downloadBtn   = document.getElementById('downloadBtn');
+const traitBadges   = document.getElementById('traitBadges');
+
+let selectedFile = null;
+
+// ── File handling ──────────────────────────────────────────────────────────
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) handleFile(f);
+});
+uploadZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadZone.classList.add('dragover');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) handleFile(f);
+});
+
+function handleFile(file) {
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    previewImg.src = ev.target.result;
+    uploadPreview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  generateBtn.disabled = false;
+}
+
+// ── Generate ──────────────────────────────────────────────────────────────
+generateBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+
+  const traits = {
+    background:  document.getElementById('traitBackground').value,
+    heldItem:    document.getElementById('traitHeldItem').value,
+    hat:         document.getElementById('traitHat').value,
+    accessories: document.getElementById('traitAccessories').value,
+    mood:        document.getElementById('traitMood').value,
+  };
+
+  // Loading state
+  generateBtn.disabled = true;
+  generateBtn.classList.add('loading');
+  generateBtn.innerHTML = '<span class="spin-ring"></span>Generating';
+  errorBox.classList.remove('visible');
+  resultOverlay.classList.add('visible');
+  resultPlaceholder.style.display = 'none';
+  resultImg.style.display = 'none';
+  downloadBtn.style.display = 'none';
+  traitBadges.style.display = 'none';
+
+  try {
+    const form = new FormData();
+    form.append('image',       selectedFile);
+    form.append('background',  traits.background);
+    form.append('heldItem',    traits.heldItem);
+    form.append('hat',         traits.hat);
+    form.append('accessories', traits.accessories);
+    form.append('mood',        traits.mood);
+
+    const res  = await fetch(`${API_BASE}/generate`, { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
+
+    resultImg.src = data.result_image;
+    resultImg.onload = () => {
+      resultOverlay.classList.remove('visible');
+      resultImg.style.display = 'block';
+
+      downloadBtn.href = data.result_image;
+      downloadBtn.style.display = 'flex';
+
+      const badgeItems = [
+        traits.background,
+        traits.heldItem,
+        traits.hat !== 'None' ? traits.hat : null,
+        traits.accessories !== 'None' ? traits.accessories : null,
+        traits.mood,
+      ].filter(Boolean);
+
+      traitBadges.innerHTML = badgeItems.map(t => `<span class="badge">${t}</span>`).join('');
+      traitBadges.style.display = 'flex';
+    };
+
+  } catch (err) {
+    resultOverlay.classList.remove('visible');
+    resultPlaceholder.style.display = 'flex';
+    errorBox.textContent = err.message;
+    errorBox.classList.add('visible');
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.classList.remove('loading');
+    generateBtn.innerHTML = 'Generate Mojo';
+  }
+});
+</script>
+</body>
+</html>
