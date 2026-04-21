@@ -181,9 +181,6 @@ nav {
   border-color: rgba(249,115,22,0.4);
   background: var(--orange-dim);
 }
-.upload-zone input {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-}
 .upload-zone-icon {
   font-size: 2rem;
   opacity: 0.3;
@@ -494,8 +491,8 @@ footer {
     <!-- Photo upload -->
     <div class="panel">
       <div class="panel-label">01 — Your Photo</div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none;">
       <div class="upload-zone" id="uploadZone">
-        <input type="file" id="fileInput" accept="image/*">
         <span class="upload-zone-icon">◻</span>
         <div class="upload-zone-text">Drop or click to upload</div>
         <div class="upload-zone-hint">JPG, PNG, WEBP — max 20MB</div>
@@ -661,6 +658,8 @@ const traitBadges   = document.getElementById('traitBadges');
 let selectedFile = null;
 
 // ── File handling ──────────────────────────────────────────────────────────
+uploadZone.addEventListener('click', () => fileInput.click());
+
 fileInput.addEventListener('change', e => {
   const f = e.target.files[0];
   if (f) handleFile(f);
