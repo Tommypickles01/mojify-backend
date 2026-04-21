@@ -257,7 +257,7 @@ nav {
   outline: none;
   transition: color .2s;
 }
-.trait-select:focus { color: var(--white); }
+.trait-select:focus { color: var(--text); }
 .trait-select option {
   background: var(--select-opt);
   color: var(--text);
@@ -451,8 +451,43 @@ footer {
   text-transform: uppercase;
   color: var(--text-dim);
 }
+
+/* ── Mobile optimizations ── */
+@media (max-width: 760px) {
+  /* Tighter hero */
+  .hero { padding: 36px 16px 28px; }
+  .hero-rule { height: 28px; margin-top: 20px; }
+
+  /* Tighter panels */
+  .panel { padding: 20px 16px; }
+
+  /* Unstick result panel — stacked layout scrolls naturally */
+  .panel[style*="sticky"] { position: static !important; }
+
+  /* Bigger touch targets on selects */
+  .trait-select { padding: 16px 28px 16px 8px; font-size: 1rem; }
+  .trait-name   { padding: 16px 0; }
+
+  /* Prevent iOS auto-zoom on any input/select (must be >= 16px) */
+  select, input { font-size: 16px !important; }
+
+  /* Upload zone — less padding */
+  .upload-zone { padding: 28px 16px; }
+
+  /* Generate button — bigger tap area */
+  .btn-generate { padding: 18px 20px; font-size: 0.85rem; }
+
+  /* Download button */
+  .btn-download { padding: 16px 20px; }
+
+  /* Badges wrap better */
+  .badge { font-size: 0.65rem; padding: 5px 10px; }
+}
+
 @media (max-width: 600px) {
+  nav { padding: 16px 20px; }
   footer { flex-direction: column; gap: 8px; padding: 20px 24px; text-align: center; }
+  .container { padding: 0 16px 60px; gap: 16px; }
 }
 </style>
 </head>
@@ -728,6 +763,11 @@ generateBtn.addEventListener('click', async () => {
     resultImg.onload = () => {
       resultOverlay.classList.remove('visible');
       resultImg.style.display = 'block';
+
+      // Auto-scroll to result on mobile
+      if (window.innerWidth <= 760) {
+        document.getElementById('resultFrame').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
 
       downloadBtn.href = data.result_image;
       downloadBtn.style.display = 'flex';
